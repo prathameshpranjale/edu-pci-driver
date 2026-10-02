@@ -45,7 +45,7 @@ Set `NOKVM=1` to boot without KVM. Pass `-s -S` to `scripts/run_qemu.sh` to atta
 
 ## Notes
 
-- **No MSI.** QEMU 8.2.2's `edu` device never delivers MSI, even when the guest enables it (checked with and without KVM), so the driver uses legacy INTx.
+- **INTx, not MSI.** With MSI enabled, the device finished its work and flagged the interrupt, but the handler never ran (QEMU 8.2.2, with and without KVM). QEMU's `edu` model does implement MSI (`msi_init` / `msi_notify` in `hw/misc/edu.c`), so this is an unsolved problem in our setup, not a device limit. The driver uses legacy INTx, which works.
 - Factorial results are 32 bits, so `n` above 12 overflows.
 
 ## Concurrency testing

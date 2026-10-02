@@ -262,12 +262,14 @@ Each step: **Goal**, **What we did**, **Why**, **What you learn**, **Gotcha** (a
 1. Plain INTx (the old kind): **worked**.
 2. MSI with KVM turned off: still failed.
 
-So the **QEMU edu device simply never sends MSI** (checked on QEMU 8.2.2), even when the guest enables it. The driver was fine. We switched to INTx (a **shared** line, so the handler returns `IRQ_NONE` if the interrupt isn't ours) and wrote the finding in the code and README.
+We first concluded "the edu device never sends MSI". **That was wrong.** Reading QEMU's source later (`hw/misc/edu.c`, v8.2.2) showed the device *does* implement MSI: it calls `msi_init()` and, when MSI is enabled, `msi_notify()`. So what we really know is narrower: **in our setup** the MSI never reached our handler, and we have **not found the cause** (it is probably in our driver or VM configuration, not the device). We switched to INTx (a **shared** line, so the handler returns `IRQ_NONE` if the interrupt isn't ours), which works.
 
 **Lessons:**
 - Change one thing at a time, and test to separate "my bug" from "the device's limit".
-- Do not promise MSI on a resume bullet if the device cannot do it. We corrected the docs.
-- The debug print that showed `status`, `irq_stat`, and `fact` on timeout is what cracked it. **Print the device's state when something times out.**
+- **Before blaming the device, read its source or datasheet.** Our experiments showed *that* MSI failed, not *why*. We jumped to "the device can't" and repeated it in the docs until we checked.
+- Do not promise MSI on a resume bullet: it does not work in our project.
+- The debug print that showed `status`, `irq_stat`, and `fact` on timeout is what narrowed it down. **Print the device's state when something times out.**
+- Open item: find out why MSI did not arrive.
 
 ## Step 4 (M5): A door for normal programs
 
@@ -371,7 +373,7 @@ So the **QEMU edu device simply never sends MSI** (checked on QEMU 8.2.2), even 
 | **Register** | A numbered mailbox inside the device |
 | **Interrupt (IRQ)** | The device taps the CPU on the shoulder: "I'm done" |
 | **INTx** | The old interrupt kind: a shared wire |
-| **MSI** | The modern interrupt kind: a message. (edu cannot send it.) |
+| **MSI** | The modern interrupt kind: a message. (edu supports it, but it did not work in our setup; cause unknown.) |
 | **ISR / handler** | The tiny function the kernel runs when the interrupt arrives |
 | **Completion** | "Sleep until someone says done" |
 | **Mutex** | A lock so only one thread works at a time |
@@ -422,7 +424,8 @@ KERNEL-CLEAN              kernel log has no KASAN/lockdep/BUG/WARN
 | Mistake | What happened | Lesson |
 |---|---|---|
 | Used `~` in WSL commands | `HOME` was mangled, build never started | Use absolute paths in scripts |
-| Assumed edu does MSI | Handler never ran; result was correct but no interrupt | Test one change at a time; the device can be the limit, not your code |
+| Used MSI first | Handler never ran; result was correct but no interrupt | Test one change at a time; INTx worked |
+| Concluded "edu cannot send MSI" | Wrong: QEMU's source shows edu implements MSI | Read the source before blaming the device; cause of our failure is still unknown |
 | Promised "MSI" in docs/resume line | Wrong | Fix the claim, not the story |
 | `chmod +x` on a Windows drive | Git recorded `100644`; CI exit 126 | Test a fresh clone before pushing |
 | `grep WARNING:` too broad | CPU boot notice failed CI | Match real problems precisely |

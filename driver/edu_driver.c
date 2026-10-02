@@ -201,9 +201,11 @@ static int edu_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 		return -ENOMEM;
 
 	/*
-	 * Legacy INTx on purpose: QEMU's edu model only raises INTx. Even when
-	 * the guest enables MSI it never sends the message (verified with and
-	 * without KVM), so the IRQ would be lost. INTx lines are shared, hence
+	 * Legacy INTx on purpose. With MSI enabled, the device finished its work
+	 * and marked the interrupt pending, but our handler never ran (QEMU 8.2.2,
+	 * with and without KVM). QEMU's edu model does implement MSI (msi_init /
+	 * msi_notify in hw/misc/edu.c), so the root cause is still unknown and is
+	 * probably on our side. INTx works. INTx lines are shared, hence
 	 * IRQF_SHARED and the IRQ_NONE path in the handler.
 	 */
 	ret = pci_alloc_irq_vectors(pdev, 1, 1, PCI_IRQ_LEGACY);
