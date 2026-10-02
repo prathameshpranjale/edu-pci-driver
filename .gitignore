@@ -13,3 +13,6 @@ Module.symvers
 tests/test_edu
 tests/test_dma
 tests/test_stress
+
+# personal notes, not for the repo
+resume_bullet_points.md
