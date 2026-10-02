@@ -31,7 +31,9 @@ for t in /bin/test_*; do [ -x "$t" ] && "$t"; done
 echo "=== rmmod ==="
 rmmod edu_driver
 echo "=== kernel health ==="
-if dmesg | grep -aE 'BUG:|WARNING:|KASAN|possible (circular|recursive) locking|inconsistent lock|Call Trace'; then
+# Not a bare "WARNING:": CPUs print harmless boot notices like "RETBleed: WARNING: ... vulnerable".
+# Real kernel WARN()s read "WARNING: CPU: n PID: ..."; lockdep reports read "WARNING: possible ...".
+if dmesg | grep -aE 'BUG:|WARNING: (CPU:|possible|inconsistent|suspicious|bad unlock|held lock)|KASAN|Call Trace'; then
   echo "KERNEL-ISSUES"
 else
   echo "KERNEL-CLEAN"
