@@ -1,0 +1,15 @@
+# kernel module build output
+*.ko
+*.o
+*.mod
+*.mod.c
+*.cmd
+.*.cmd
+modules.order
+Module.symvers
+.tmp_versions/
+
+# compiled test binaries (built from tests/*.c by scripts/test.sh)
+tests/test_edu
+tests/test_dma
+tests/test_stress
